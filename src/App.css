@@ -50,13 +50,13 @@ body {
 }
 
 .app-header h1 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   opacity: 0.9;
   font-weight: 300;
 }
@@ -66,16 +66,62 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 2rem;
-  gap: 2rem;
+  padding: 1rem;
+  gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
 }
 
+@media (min-width: 600px) {
+  .app-main {
+    padding: 1.5rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2.2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  .toggle-button {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+  }
+}
+
 @media (min-width: 768px) {
   .app-main {
     flex-direction: row;
+    padding: 2rem;
+    gap: 2rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2.5rem;
+  }
+  
+  .subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .video-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+  }
+  
+  .header-buttons {
+    width: auto;
+    justify-content: flex-end;
+  }
+  
+  .toggle-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -109,15 +155,18 @@ body {
 /* Video Header */
 .video-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border-light);
 }
 
 .header-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  width: 100%;
+  justify-content: center;
 }
 
 .video-header h2 {
@@ -131,8 +180,8 @@ body {
   color: var(--text-dark);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-base);
@@ -152,19 +201,21 @@ body {
 /* Video Wrapper */
 .video-wrapper {
   position: relative;
+  aspect-ratio: 16 / 9;
   width: 100%;
-  padding: 1rem;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
 .video-feed {
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 640px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Detection Indicator */
@@ -261,11 +312,11 @@ body {
 /* Text Input */
 .text-input {
   width: 100%;
-  min-height: 150px;
+  min-height: 120px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 1rem;
-  font-size: 1.125rem;
+  padding: 0.75rem;
+  font-size: 1rem;
   margin-bottom: 1.5rem;
   resize: none;
   transition: var(--transition-base);
@@ -287,12 +338,13 @@ body {
 .button-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .button-container {
     grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
   }
 }
 
@@ -429,10 +481,10 @@ body {
   background-color: var(--bg-white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  max-width: 90%;
+  max-width: 95%;
   max-height: 90vh;
   overflow: auto;
-  padding: 1.5rem;
+  padding: 1rem;
   animation: slide-up 0.3s ease-out;
 }
 
@@ -444,7 +496,7 @@ body {
 }
 
 .guide-container h3 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--primary-color);
   margin-bottom: 0;
@@ -491,7 +543,7 @@ body {
 
 /* Upload Section Styles */
 .upload-section {
-  padding: 1.5rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -500,7 +552,7 @@ body {
 
 .upload-area {
   width: 100%;
-  height: 250px;
+  height: 200px;
   border: 2px dashed var(--border-light);
   border-radius: var(--radius-md);
   display: flex;
@@ -541,13 +593,14 @@ body {
 
 .upload-actions {
   display: flex;
-  gap: 1rem;
-  width: 100%;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .upload-button,
 .detect-button {
+  width: 100%;
+  max-width: 250px;
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: var(--radius-md);
@@ -556,6 +609,7 @@ body {
   transition: var(--transition-base);
   min-width: 120px;
   text-align: center;
+  margin-bottom: 0.5rem;
 }
 
 .upload-button {
@@ -617,9 +671,213 @@ body {
   transform: translate(-50%, -50%);
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   border-radius: var(--radius-md);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   z-index: 10;
+}
+
+/* Responsive breakpoints for upload section */
+@media (min-width: 600px) {
+  .upload-section {
+    padding: 1.25rem;
+  }
+  
+  .upload-area {
+    height: 220px;
+  }
+  
+  .upload-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .upload-button,
+  .detect-button {
+    width: auto;
+    margin-bottom: 0;
+  }
+  
+  .video-wrapper {
+    padding: 0.75rem;
+  }
+  
+  .processing-indicator {
+    font-size: 0.8rem;
+    padding: 0.45rem 0.9rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .upload-section {
+    padding: 1.5rem;
+  }
+  
+  .upload-area {
+    height: 250px;
+  }
+  
+  .button-container {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* Guide overlay responsiveness */
+.guide-container {
+  width: 95%;
+  max-width: 500px;
+  padding: 1rem;
+}
+
+.guide-header h3 {
+  font-size: 1.2rem;
+}
+
+@media (min-width: 600px) {
+  .guide-container {
+    width: 80%;
+    padding: 1.25rem;
+  }
+  
+  .guide-header h3 {
+    font-size: 1.4rem;
+  }
+}
+
+/* Text area responsiveness */
+.text-input {
+  min-height: 150px;
+  font-size: 1.125rem;
+  padding: 1rem;
+}
+
+/* Fix for video aspect ratio */
+.video-wrapper {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.video-feed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Canvas needs to match video */
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Mobile and orientation specific styles */
+.app-container.mobile {
+  /* General mobile styles */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-container.mobile.portrait {
+  /* Portrait specific styles */
+}
+
+.app-container.mobile.landscape {
+  /* Landscape specific adaptations */
+}
+
+/* Mobile optimizations */
+.mobile .app-header {
+  padding: 1rem;
+}
+
+.mobile .button-icon {
+  font-size: 1.25rem;
+}
+
+.mobile .button-text {
+  font-size: 0.7rem;
+}
+
+.mobile .video-feed {
+  border-radius: var(--radius-md);
+}
+
+.mobile .detected-letter {
+  height: 50px;
+  padding: 0.5rem;
+}
+
+.mobile .letter-value {
+  font-size: 1.6rem;
+}
+
+/* Portrait mode tweaks */
+.portrait .app-main {
+  flex-direction: column;
+}
+
+.portrait .camera-section,
+.portrait .text-section {
+  width: 100%;
+}
+
+/* Landscape mode tweaks for mobile */
+@media (max-width: 800px) {
+  .landscape .app-main {
+    flex-direction: row;
+    height: calc(100vh - 170px);
+  }
+  
+  .mobile.landscape .text-input {
+    min-height: 80px;
+  }
+  
+  .mobile.landscape .button-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Fix video height in landscape */
+.mobile.landscape .video-wrapper {
+  height: 100%;
+}
+
+/* Improved touch targets for mobile */
+.mobile .toggle-button,
+.mobile .action-button,
+.mobile .upload-button,
+.mobile .detect-button {
+  min-height: 44px; /* Apple's recommended minimum touch target size */
+}
+
+/* Handle very small screens */
+@media (max-width: 320px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .subtitle {
+    font-size: 0.8rem;
+  }
+  
+  .toggle-button {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .mobile .letter-value {
+    font-size: 1.4rem;
+  }
 }

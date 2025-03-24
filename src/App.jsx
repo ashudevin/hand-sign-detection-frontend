@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import "./App.css"; // We'll create this file next
 
@@ -19,11 +19,35 @@ function App() {
   const [captureInterval, setCaptureInterval] = useState(null);
   const [processingImage, setProcessingImage] = useState(false);
   
+  // New responsive state
+  const [isMobile, setIsMobile] = useState(false);
+  const [orientation, setOrientation] = useState(window.innerHeight > window.innerWidth ? 'portrait' : 'landscape');
+  
   // Refs
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // Check for mobile device on component mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      setIsMobile(isMobileDevice);
+    };
+    
+    const handleResize = () => {
+      setOrientation(window.innerHeight > window.innerWidth ? 'portrait' : 'landscape');
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.addEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Initialize webcam when component mounts
   useEffect(() => {
@@ -43,10 +67,18 @@ function App() {
     };
   }, [showUpload]);
 
-  // Initialize webcam functionality
-  const initializeWebcam = async () => {
+  // Memoize the webcam initialization to prevent unnecessary re-renders
+  const initializeWebcam = useCallback(async () => {
     try {
-      const constraints = { video: true };
+      // Set video constraints based on device
+      const constraints = { 
+        video: {
+          facingMode: isMobile ? 'environment' : 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
@@ -55,19 +87,24 @@ function App() {
       }
     } catch (err) {
       console.error("Error accessing webcam:", err);
-      alert("Unable to access webcam. Please allow camera access or use the image upload feature.");
+      alert("Unable to access camera. Please allow camera access or use the image upload feature.");
+      // Automatically switch to upload mode if camera fails
+      setShowUpload(true);
     }
-  };
+  }, [isMobile]);
 
   // Start/stop detecting from webcam
   useEffect(() => {
     if (isDetecting && webcamActive && !showUpload) {
+      // Adjust interval based on device (slower for mobile)
+      const intervalTime = isMobile ? 1500 : 1000;
+      
       // Set up interval to send frames for detection
       const interval = setInterval(() => {
         if (!processingImage) {
           captureAndSendFrame();
         }
-      }, 1000); // Send frame every second
+      }, intervalTime);
       
       setCaptureInterval(interval);
     } else {
@@ -83,9 +120,9 @@ function App() {
         clearInterval(captureInterval);
       }
     };
-  }, [isDetecting, webcamActive, showUpload, processingImage]);
+  }, [isDetecting, webcamActive, showUpload, processingImage, isMobile]);
 
-  // Capture frame from webcam and send to backend
+  // Capture frame with optimized quality based on device
   const captureAndSendFrame = async () => {
     if (!videoRef.current || !canvasRef.current || processingImage) return;
     
@@ -100,9 +137,12 @@ function App() {
     // Draw video frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Convert canvas to blob
+    // Convert canvas to blob with quality based on device
     try {
       setProcessingImage(true);
+      
+      // Lower quality on mobile to reduce payload size
+      const imageQuality = isMobile ? 0.6 : 0.8;
       
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -131,7 +171,7 @@ function App() {
         } finally {
           setProcessingImage(false);
         }
-      }, 'image/jpeg', 0.8);
+      }, 'image/jpeg', imageQuality);
     } catch (err) {
       console.error("Error capturing frame:", err);
       setProcessingImage(false);
@@ -331,8 +371,34 @@ function App() {
     }
   };
 
+  // Render buttons based on screen size
+  const renderHeaderButtons = () => {
+    return (
+      <div className="header-buttons">
+        <button 
+          className={`toggle-button ${isDetecting ? 'active' : ''}`}
+          onClick={toggleDetection}
+        >
+          {isDetecting ? (isMobile ? 'Pause' : 'Pause Detection') : (isMobile ? 'Start' : 'Resume Detection')}
+        </button>
+        <button 
+          className={`toggle-button ${showUpload ? 'active' : ''}`}
+          onClick={toggleUpload}
+        >
+          {showUpload ? (isMobile ? 'Camera' : 'Show Camera') : (isMobile ? 'Upload' : 'Upload Image')}
+        </button>
+        <button 
+          className={`toggle-button ${showGuide ? 'active' : ''}`}
+          onClick={toggleGuide}
+        >
+          {showGuide ? (isMobile ? 'Hide' : 'Hide Guide') : (isMobile ? 'Guide' : 'Show Guide')}
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${isMobile ? 'mobile' : ''} ${orientation}`}>
       <header className="app-header">
         <h1>Hand Sign Detector</h1>
         <p className="subtitle">Translate hand gestures to text in real-time</p>
@@ -342,27 +408,8 @@ function App() {
         <section className="camera-section">
           <div className="video-card">
             <div className="video-header">
-              <h2>Camera Feed</h2>
-              <div className="header-buttons">
-                <button 
-                  className={`toggle-button ${isDetecting ? 'active' : ''}`}
-                  onClick={toggleDetection}
-                >
-                  {isDetecting ? 'Pause Detection' : 'Resume Detection'}
-                </button>
-                <button 
-                  className={`toggle-button ${showUpload ? 'active' : ''}`}
-                  onClick={toggleUpload}
-                >
-                  {showUpload ? 'Show Camera' : 'Upload Image'}
-                </button>
-                <button 
-                  className={`toggle-button ${showGuide ? 'active' : ''}`}
-                  onClick={toggleGuide}
-                >
-                  {showGuide ? 'Hide Guide' : 'Show Guide'}
-                </button>
-              </div>
+              <h2>{isMobile ? 'Camera' : 'Camera Feed'}</h2>
+              {renderHeaderButtons()}
             </div>
             
             {!showUpload ? (
@@ -387,7 +434,7 @@ function App() {
                 )}
                 {processingImage && (
                   <div className="processing-indicator">
-                    Processing...
+                    {isMobile ? 'Processing...' : 'Processing frame...'}
                   </div>
                 )}
               </div>
@@ -399,13 +446,14 @@ function App() {
                   onChange={handleFileChange}
                   style={{ display: 'none' }}
                   ref={fileInputRef}
+                  capture={isMobile ? 'environment' : undefined}
                 />
                 
                 <div className="upload-area" onClick={triggerFileInput}>
                   {!uploadedImage ? (
                     <>
                       <div className="upload-icon">📷</div>
-                      <p>Click to select an image with hand signs</p>
+                      <p>{isMobile ? 'Tap to select image' : 'Click to select an image with hand signs'}</p>
                     </>
                   ) : (
                     <div className="image-preview-container">
@@ -423,7 +471,7 @@ function App() {
                     className="upload-button" 
                     onClick={triggerFileInput}
                   >
-                    Select Image
+                    {isMobile ? 'New Image' : 'Select Image'}
                   </button>
                   
                   <button 
@@ -431,7 +479,7 @@ function App() {
                     onClick={handleUpload}
                     disabled={!selectedFile || isUploading}
                   >
-                    {isUploading ? 'Processing...' : 'Detect Sign'}
+                    {isUploading ? 'Processing...' : (isMobile ? 'Detect' : 'Detect Sign')}
                   </button>
                 </div>
               </div>
@@ -472,7 +520,7 @@ function App() {
               value={sentence}
               onChange={(e) => setSentence(e.target.value)}
               className="text-input"
-              placeholder="Detected signs will appear here..."
+              placeholder={isMobile ? "Signs appear here..." : "Detected signs will appear here..."}
             ></textarea>
             
             <div className="button-container">
@@ -510,7 +558,7 @@ function App() {
                 title="Speak text"
               >
                 <span className="button-icon">{isSpeaking ? '🔊' : '🔈'}</span>
-                <span className="button-text">{isSpeaking ? 'Speaking...' : 'Speak'}</span>
+                <span className="button-text">{isSpeaking ? 'Speaking' : 'Speak'}</span>
               </button>
             </div>
           </div>
@@ -518,7 +566,10 @@ function App() {
       </main>
       
       <footer className="app-footer">
-        <p>Position your hand clearly in the camera feed or upload a clear image for best detection results</p>
+        <p>{isMobile ? 
+          "Position hand clearly for best results" : 
+          "Position your hand clearly in the camera feed or upload a clear image for best detection results"}
+        </p>
       </footer>
     </div>
   );
