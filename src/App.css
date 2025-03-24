@@ -160,9 +160,9 @@ body {
 }
 
 .video-feed {
+  display: block;
   width: 100%;
   max-width: 640px;
-  height: auto;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
@@ -606,4 +606,20 @@ body {
   100% {
     left: 100%;
   }
+}
+
+/* Add these styles for the real-time webcam processing */
+
+.processing-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 10;
 }

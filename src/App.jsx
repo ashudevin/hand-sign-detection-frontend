@@ -9,18 +9,140 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastDetectedTime, setLastDetectedTime] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
-  const textareaRef = useRef(null);
+  const [showUpload, setShowUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
+  
+  // New state variables for webcam
+  const [webcamActive, setWebcamActive] = useState(false);
+  const [captureInterval, setCaptureInterval] = useState(null);
+  const [processingImage, setProcessingImage] = useState(false);
+  
+  // Refs
+  const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  // Fetch detected alphabet from backend
+  // Initialize webcam when component mounts
+  useEffect(() => {
+    if (!showUpload && !webcamActive) {
+      initializeWebcam();
+    }
+    
+    return () => {
+      // Clean up webcam resources
+      if (webcamActive) {
+        const stream = videoRef.current?.srcObject;
+        if (stream) {
+          const tracks = stream.getTracks();
+          tracks.forEach(track => track.stop());
+        }
+      }
+    };
+  }, [showUpload]);
+
+  // Initialize webcam functionality
+  const initializeWebcam = async () => {
+    try {
+      const constraints = { video: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setWebcamActive(true);
+      }
+    } catch (err) {
+      console.error("Error accessing webcam:", err);
+      alert("Unable to access webcam. Please allow camera access or use the image upload feature.");
+    }
+  };
+
+  // Start/stop detecting from webcam
+  useEffect(() => {
+    if (isDetecting && webcamActive && !showUpload) {
+      // Set up interval to send frames for detection
+      const interval = setInterval(() => {
+        if (!processingImage) {
+          captureAndSendFrame();
+        }
+      }, 1000); // Send frame every second
+      
+      setCaptureInterval(interval);
+    } else {
+      // Clear interval if detecting is turned off
+      if (captureInterval) {
+        clearInterval(captureInterval);
+        setCaptureInterval(null);
+      }
+    }
+    
+    return () => {
+      if (captureInterval) {
+        clearInterval(captureInterval);
+      }
+    };
+  }, [isDetecting, webcamActive, showUpload, processingImage]);
+
+  // Capture frame from webcam and send to backend
+  const captureAndSendFrame = async () => {
+    if (!videoRef.current || !canvasRef.current || processingImage) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to blob
+    try {
+      setProcessingImage(true);
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        const formData = new FormData();
+        formData.append('file', blob, 'webcam-frame.jpg');
+        
+        try {
+          const response = await axios.post(
+            "https://hand-sign-detection-backend.onrender.com/detect_from_image",
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
+          
+          if (response.data.alphabet) {
+            setAlphabet(response.data.alphabet);
+            setSentence((prev) => prev + response.data.alphabet);
+            setLastDetectedTime(Date.now());
+          }
+        } catch (err) {
+          console.error("Error sending frame to backend:", err);
+        } finally {
+          setProcessingImage(false);
+        }
+      }, 'image/jpeg', 0.8);
+    } catch (err) {
+      console.error("Error capturing frame:", err);
+      setProcessingImage(false);
+    }
+  };
+
+  // Original detection logic (legacy - kept for reference)
   useEffect(() => {
     let interval;
     
-    if (isDetecting) {
+    if (isDetecting && !webcamActive && !showUpload) {
       interval = setInterval(() => {
         axios
           .get("https://hand-sign-detection-backend.onrender.com/detect")
@@ -36,7 +158,7 @@ function App() {
     }
 
     return () => clearInterval(interval);
-  }, [isDetecting]);
+  }, [isDetecting, webcamActive, showUpload]);
 
   // Effect for fading out the detected letter animation
   useEffect(() => {
@@ -136,6 +258,11 @@ function App() {
 
   const toggleUpload = () => {
     setShowUpload(!showUpload);
+    
+    // If switching away from upload, initialize webcam
+    if (showUpload) {
+      initializeWebcam();
+    }
   };
 
   const handleFileChange = (event) => {
@@ -240,14 +367,27 @@ function App() {
             
             {!showUpload ? (
               <div className="video-wrapper">
-                <img
-                  src="https://hand-sign-detection-backend.onrender.com/video_feed"
-                  alt="Webcam Feed"
+                {/* Live webcam video */}
+                <video 
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
                   className="video-feed"
+                />
+                {/* Hidden canvas for processing frames */}
+                <canvas 
+                  ref={canvasRef} 
+                  style={{ display: 'none' }}
                 />
                 {isDetecting && (
                   <div className="detection-indicator">
                     <div className="pulse-ring"></div>
+                  </div>
+                )}
+                {processingImage && (
+                  <div className="processing-indicator">
+                    Processing...
                   </div>
                 )}
               </div>
