@@ -18,7 +18,7 @@ function App() {
     if (isDetecting) {
       interval = setInterval(() => {
         axios
-          .get("http://localhost:8000/detect")
+          .get("https://hand-sign-detection-backend.onrender.com/detect")
           .then((response) => {
             if (response.data.alphabet) {
               setAlphabet(response.data.alphabet);
@@ -159,7 +159,7 @@ function App() {
             
             <div className="video-wrapper">
               <img
-                src="http://localhost:8000/video_feed"
+                src="https://hand-sign-detection-backend.onrender.com/video_feed"
                 alt="Webcam Feed"
                 className="video-feed"
               />
