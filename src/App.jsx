@@ -10,6 +10,11 @@ function App() {
   const [lastDetectedTime, setLastDetectedTime] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
   const textareaRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Fetch detected alphabet from backend
   useEffect(() => {
@@ -129,6 +134,76 @@ function App() {
     setShowGuide(!showGuide);
   };
 
+  const toggleUpload = () => {
+    setShowUpload(!showUpload);
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create a preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage({
+          preview: e.target.result,
+          result: null
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert("Please select an image first");
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await axios.post(
+        "https://hand-sign-detection-backend.onrender.com/detect_from_image",
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.alphabet) {
+        setAlphabet(response.data.alphabet);
+        setSentence((prev) => prev + response.data.alphabet);
+        setLastDetectedTime(Date.now());
+        
+        // Update the image to show the annotated version
+        if (response.data.image) {
+          setUploadedImage({
+            ...uploadedImage,
+            result: response.data.image
+          });
+        }
+      } else if (response.data.message) {
+        alert(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to process image. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -149,6 +224,12 @@ function App() {
                   {isDetecting ? 'Pause Detection' : 'Resume Detection'}
                 </button>
                 <button 
+                  className={`toggle-button ${showUpload ? 'active' : ''}`}
+                  onClick={toggleUpload}
+                >
+                  {showUpload ? 'Show Camera' : 'Upload Image'}
+                </button>
+                <button 
                   className={`toggle-button ${showGuide ? 'active' : ''}`}
                   onClick={toggleGuide}
                 >
@@ -157,18 +238,64 @@ function App() {
               </div>
             </div>
             
-            <div className="video-wrapper">
-              <img
-                src="https://hand-sign-detection-backend.onrender.com/video_feed"
-                alt="Webcam Feed"
-                className="video-feed"
-              />
-              {isDetecting && (
-                <div className="detection-indicator">
-                  <div className="pulse-ring"></div>
+            {!showUpload ? (
+              <div className="video-wrapper">
+                <img
+                  src="https://hand-sign-detection-backend.onrender.com/video_feed"
+                  alt="Webcam Feed"
+                  className="video-feed"
+                />
+                {isDetecting && (
+                  <div className="detection-indicator">
+                    <div className="pulse-ring"></div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="upload-section">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  ref={fileInputRef}
+                />
+                
+                <div className="upload-area" onClick={triggerFileInput}>
+                  {!uploadedImage ? (
+                    <>
+                      <div className="upload-icon">📷</div>
+                      <p>Click to select an image with hand signs</p>
+                    </>
+                  ) : (
+                    <div className="image-preview-container">
+                      <img 
+                        src={uploadedImage.result || uploadedImage.preview} 
+                        alt="Uploaded hand sign" 
+                        className="uploaded-image-preview" 
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                <div className="upload-actions">
+                  <button 
+                    className="upload-button" 
+                    onClick={triggerFileInput}
+                  >
+                    Select Image
+                  </button>
+                  
+                  <button 
+                    className={`detect-button ${isUploading ? 'uploading' : ''}`}
+                    onClick={handleUpload}
+                    disabled={!selectedFile || isUploading}
+                  >
+                    {isUploading ? 'Processing...' : 'Detect Sign'}
+                  </button>
+                </div>
+              </div>
+            )}
             
             <div className={`detected-letter ${lastDetectedTime ? 'pop-in' : ''}`}>
               {alphabet && (
@@ -251,7 +378,7 @@ function App() {
       </main>
       
       <footer className="app-footer">
-        <p>Position your hand clearly in the camera feed for best detection results</p>
+        <p>Position your hand clearly in the camera feed or upload a clear image for best detection results</p>
       </footer>
     </div>
   );
